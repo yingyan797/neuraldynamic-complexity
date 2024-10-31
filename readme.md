@@ -1,0 +1,1 @@
+# Izhikevich network dynamical complexity experiment
