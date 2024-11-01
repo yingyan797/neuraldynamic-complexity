@@ -41,7 +41,6 @@ class SWMNetwork:
         F_IE = 2
         F_II = 1
 
-        EE_block = create_EE_block()
         zero_block = np.zeros((100, 100))
         II_block = -1 * np.random.random(size=(200, 200))
         np.fill_diagonal(II_block, 0)
@@ -59,7 +58,7 @@ class SWMNetwork:
         """
         ## TODO generate W matrix
         W = np.bmat([
-            [zero_block for _ in range(0, i)] + [EE_block] + [zero_block for _ in range(i+1, 8)] + [EI_blocks[i]] for i in range(8)
+            [zero_block for _ in range(0, i)] + [create_EE_block()] + [zero_block for _ in range(i+1, 8)] + [EI_blocks[i]] for i in range(8)
         ] + [IE_blocks + [II_block]])
 
         plot_weight_matrix(W)
