@@ -2,6 +2,12 @@ from iznetwork import IzNetwork
 import numpy as np
 from PIL import Image
 
+EE_module_neurons = 100
+EE_module_edges = 1000
+EE_module_num = 8
+i_neuron_num = 200
+
+
 def create_EE_block(n_neurons=100, n_edges=1000, weight=1):
     full_edges = n_neurons*(n_neurons-1)
     block = [0 for _ in range(full_edges)]
@@ -28,24 +34,24 @@ def plot_weight_matrix(weight, fn="static/weight.png"):
 
 class SWMNetwork:
     def __init__(self, dmax=1):
-        self.N = 1000
+        self.N = EE_module_neurons * EE_module_num + i_neuron_num
         self.net = IzNetwork(self.N, dmax)
 
         a = 0.02*np.ones(self.N)
-        b = np.concatenate((0.2*np.ones(800), 0.25 * np.ones(200)))
+        b = np.concatenate((0.2*np.ones(EE_module_neurons * EE_module_num), 0.25 * np.ones(i_neuron_num)))
         c = -65*np.ones(self.N)
-        d = np.concatenate((8 * np.ones(800), 2 * np.ones(200)))
+        d = np.concatenate((8 * np.ones(EE_module_neurons * EE_module_num), 2 * np.ones(i_neuron_num)))
 
         F_EE = 17
         F_EI = 50
         F_IE = 2
         F_II = 1
 
-        zero_block = np.zeros((100, 100))
-        II_block = -1 * np.random.random(size=(200, 200))
+        zero_block = np.zeros((EE_module_neurons, EE_module_neurons))
+        II_block = -1 * np.random.random(size=(i_neuron_num, i_neuron_num))
         np.fill_diagonal(II_block, 0)
-        IE_blocks = [-1 * np.random.random(size=(200, 100)) for _ in range(8)]
-        EI_blocks = [create_EI_block(shift=i) for i in range(0, 200, 25)]
+        IE_blocks = [-1 * np.random.random(size=(i_neuron_num, EE_module_neurons)) for _ in range(EE_module_num)]
+        EI_blocks = [create_EI_block(i, EE_module_neurons, i_neuron_num) for i in range(0, i_neuron_num, 25)]
 
         """
         [   EE      zero    zero    zero    zero    zero    zero    E-I
@@ -58,7 +64,7 @@ class SWMNetwork:
         """
         ## TODO generate W matrix
         W = np.bmat([
-            [zero_block for _ in range(0, i)] + [create_EE_block()] + [zero_block for _ in range(i+1, 8)] + [EI_blocks[i]] for i in range(8)
+            [zero_block for _ in range(0, i)] + [create_EE_block(EE_module_neurons, EE_module_edges)] + [zero_block for _ in range(i+1, EE_module_num)] + [EI_blocks[i]] for i in range(EE_module_num)
         ] + [IE_blocks + [II_block]])
 
         plot_weight_matrix(W)
