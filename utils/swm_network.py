@@ -27,7 +27,7 @@ def plot_weight_matrix(weight, fn="static/weight.png"):
     Image.fromarray(weight, mode="L").save(fn)
 
 class SWMNetwork:
-    def __init__(self, EE_module_neurons = 100, EE_module_edges = 1000, EE_module_num = 8, i_neuron_num = 200, dmax=1):
+    def __init__(self, EE_module_neurons=100, EE_module_edges=1000, EE_module_num=8, i_neuron_num=200, p=0.1, dmax=1):
         self.ee_m_neurons = EE_module_neurons
         self.ee_m_edges = EE_module_edges
         self.modules_num = EE_module_num
@@ -70,15 +70,37 @@ class SWMNetwork:
 
         # TODO generate D matrix
         D = dmax*np.ones((self.N, self.N), dtype=int)
-        self.rewire()
+        self.rewire(W, p)
 
         self.net.setParameters(a, b, c, d)
         self.net.setDelays(D)
         self.net.setWeights(W)    
    
     ## TODO rewireing
-    def rewire(self):
-        pass
+    def rewire(self, W, p):
+        for i in range(self.modules_num):
+            # Work out bounds of the current block
+            block_start = i * self.ee_m_neurons
+            block_end = (i + 1) * self.ee_m_neurons
+
+            for j in range(block_start, block_end):
+                for k in range(block_start, block_end):
+                    # Record current weight, only process if there is an edge
+                    current_weight = W[j, k]
+                    if current_weight != 0 and np.random.choice([True, False], p=[p, 1 - p]):
+                        # New target must be from other block
+                        id_before = np.arange(0, block_start)
+                        id_after = np.arange(block_end, self.modules_num * self.ee_m_neurons)
+                        external_targets = np.concatenate((id_before, id_after))
+
+                        # Randomly choose a new target, and ensure no existing edge to the it
+                        new_target = np.random.choice(external_targets)
+                        while W[j, new_target] != 0:
+                            new_target = np.random.choice(external_targets)
+
+                        # Process the rewiring
+                        W[j, k] = 0
+                        W[j, new_target] = current_weight
 
     def update(self):
         pass
