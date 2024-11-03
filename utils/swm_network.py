@@ -1,6 +1,6 @@
 from iznetwork import IzNetwork
 import numpy as np
-from PIL import Imag
+from PIL import Image
 
 def create_EE_block(n_neurons=100, n_edges=1000, weight=1):
     full_edges = n_neurons*(n_neurons-1)
@@ -71,6 +71,7 @@ class SWMNetwork:
         # TODO generate D matrix
         D = dmax*np.ones((self.N, self.N), dtype=int)
         self.rewire(W, p)
+        plot_weight_matrix(W, "static/weight_rewired.png")
 
         self.net.setParameters(a, b, c, d)
         self.net.setDelays(D)
