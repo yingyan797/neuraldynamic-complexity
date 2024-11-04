@@ -23,7 +23,13 @@ def create_EI_block(shift, n_rows=100, n_cols=200):
     return block
 
 def plot_weight_matrix(weight, fn="static/weight.png"):
-    weight = np.array(255 * (weight-(-1)) / 2, dtype=np.uint8)
+    def weight_color(w):
+        if w == 0:
+            return 0
+        return 125+130*(w-(-1))/2
+    func = np.vectorize(weight_color)
+    weight = np.array(func(weight), dtype=np.uint8)
+    
     Image.fromarray(weight, mode="L").save(fn)
 
 class SWMNetwork:
@@ -79,29 +85,34 @@ class SWMNetwork:
    
     ## TODO rewireing
     def rewire(self, W, p):
+        n_candidates = self.ee_m_neurons*(self.modules_num-1)
         for i in range(self.modules_num):
             # Work out bounds of the current block
             block_start = i * self.ee_m_neurons
             block_end = (i + 1) * self.ee_m_neurons
-
             for j in range(block_start, block_end):
+                n_avail = n_candidates
                 for k in range(block_start, block_end):
                     # Record current weight, only process if there is an edge
                     current_weight = W[j, k]
                     if current_weight != 0 and np.random.choice([True, False], p=[p, 1 - p]):
                         # New target must be from other block
-                        id_before = np.arange(0, block_start)
-                        id_after = np.arange(block_end, self.modules_num * self.ee_m_neurons)
-                        external_targets = np.concatenate((id_before, id_after))
-
-                        # Randomly choose a new target, and ensure no existing edge to the it
-                        new_target = np.random.choice(external_targets)
-                        while W[j, new_target] != 0:
-                            new_target = np.random.choice(external_targets)
+                        new_target = int(n_avail * np.random.random())+1
+                        t, acc = 0, 0
+                        while t < self.modules_num * self.ee_m_neurons:
+                            if t == block_start:
+                                t += self.ee_m_neurons
+                                continue
+                            if W[j,t] == 0:
+                                acc += 1
+                            if acc == new_target:
+                                break
+                            t += 1
 
                         # Process the rewiring
+                        n_avail -= 1
                         W[j, k] = 0
-                        W[j, new_target] = current_weight
+                        W[j, t] = current_weight
 
     def update(self):
         pass
