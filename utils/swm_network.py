@@ -67,15 +67,18 @@ class SWMNetwork:
         
         ]
         """
-        ## TODO generate W matrix
+        ## generate W matrix
         W = np.bmat([
             [zero_block for _ in range(0, i)] + [create_EE_block(self.ee_m_neurons, self.ee_m_edges) * F_EE] + [zero_block for _ in range(i+1, self.modules_num)] + [EI_blocks[i]] for i in range(self.modules_num)
         ] + [IE_blocks + [II_block]])
 
         plot_weight_matrix(W)
 
-        # TODO generate D matrix
+        # generate D matrix
         D = dmax*np.ones((self.N, self.N), dtype=int)
+        ee_matrix = self.ee_m_neurons * self.modules_num
+        D[:ee_matrix, :ee_matrix] = 1 + np.random.random(size=(ee_matrix, ee_matrix)) * 19 # random delay between 1ms and 20ms
+        
         self.rewire(W, p)
         plot_weight_matrix(W, "static/weight_rewired.png")
 
