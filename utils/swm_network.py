@@ -53,10 +53,10 @@ class SWMNetwork:
         F_II = 1
 
         zero_block = np.zeros((self.ee_m_neurons, self.ee_m_neurons))
-        II_block = -1 * np.random.random(size=(self.i_neurons, self.i_neurons))
+        II_block = -1 * np.random.random(size=(self.i_neurons, self.i_neurons)) * F_II
         np.fill_diagonal(II_block, 0)
-        IE_blocks = [-1 * np.random.random(size=(self.i_neurons, self.ee_m_neurons)) for _ in range(self.modules_num)]
-        EI_blocks = [create_EI_block(i, self.ee_m_neurons, self.i_neurons) for i in range(0, self.i_neurons, 25)]
+        IE_blocks = [-1 * np.random.random(size=(self.i_neurons, self.ee_m_neurons)) * F_IE for _ in range(self.modules_num)]
+        EI_blocks = [create_EI_block(i, self.ee_m_neurons, self.i_neurons) * F_EI for i in range(0, self.i_neurons, 25)]
 
         """
         [   EE      zero    zero    zero    zero    zero    zero    E-I
@@ -69,7 +69,7 @@ class SWMNetwork:
         """
         ## TODO generate W matrix
         W = np.bmat([
-            [zero_block for _ in range(0, i)] + [create_EE_block(self.ee_m_neurons, self.ee_m_edges)] + [zero_block for _ in range(i+1, self.modules_num)] + [EI_blocks[i]] for i in range(self.modules_num)
+            [zero_block for _ in range(0, i)] + [create_EE_block(self.ee_m_neurons, self.ee_m_edges) * F_EE] + [zero_block for _ in range(i+1, self.modules_num)] + [EI_blocks[i]] for i in range(self.modules_num)
         ] + [IE_blocks + [II_block]])
 
         plot_weight_matrix(W)
