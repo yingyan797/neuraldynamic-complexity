@@ -79,7 +79,7 @@ class SWMNetwork:
         ee_matrix = self.ee_m_neurons * self.modules_num
         D[:ee_matrix, :ee_matrix] = 1 + np.random.random(size=(ee_matrix, ee_matrix)) * 19 # random delay between 1ms and 20ms
         
-        self.rewire(W, p)
+        self._rewire(W, p)
         plot_weight_matrix(W, "static/weight_rewired.png")
 
         self.net.setParameters(a, b, c, d)
@@ -87,7 +87,7 @@ class SWMNetwork:
         self.net.setWeights(W)    
    
     ## TODO rewireing
-    def rewire(self, W, p):
+    def _rewire(self, W, p):
         n_candidates = self.ee_m_neurons*(self.modules_num-1)
         for i in range(self.modules_num):
             # Work out bounds of the current block
@@ -117,8 +117,23 @@ class SWMNetwork:
                         W[j, k] = 0
                         W[j, t] = current_weight
 
-    def update(self):
-        pass
+    def simulate(self, period=1000):
+        ntot_neurons = self.ee_m_neurons * self.modules_num + self.i_neurons
+        fire_matrix = np.zeros((ntot_neurons, period), dtype=np.bool_)
+        for t in range(period):
+            ps_dtbn = np.random.poisson(lam=0.01, size=ntot_neurons)
+            I = np.array([v+15 if v>0 else 0 for v in ps_dtbn])
+            # I = np.apply_along_axis(lambda v: 15+v if v > 0 else 0, axis=0, arr=ps_dtbn)
+            self.net.setCurrent(I)
+            fired_id = np.zeros(ntot_neurons, dtype=np.bool_)
+            for n in self.net.update():
+                fired_id[n] = 1
+            fire_matrix[:, t] = fired_id.T
+
+        Image.fromarray(fire_matrix).save("static/raster.png")
+        
+        
 
 if __name__ == "__main__":
     swm = SWMNetwork()
+    swm.simulate()
