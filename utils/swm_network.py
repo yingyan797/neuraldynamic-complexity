@@ -24,14 +24,17 @@ def create_EI_block(shift, n_rows=100, n_cols=200):
     return block
 
 def plot_weight_matrix(weight, fn="static/weight.png"):
-    def weight_color(w):
-        if w == 0:
-            return 0
-        return 125+130*(w-(-1))/2
-    func = np.vectorize(weight_color)
-    weight = np.array(func(weight), dtype=np.uint8)
-    
-    Image.fromarray(weight, mode="L").save(fn)
+    l, h = np.min(weight), np.max(weight)
+    imarr = np.zeros((weight.shape[0], weight.shape[1], 3))
+    imarr[:,:, 0] = weight
+    def set_color(w):
+        if w[0] == 0:
+            return np.array([0,0,0], dtype=np.uint8)
+        if w[0] < 0:
+            return np.array([0, 0, 55+200*w[0]/l], dtype=np.uint8)
+        return np.array([200+55*w[0]/h, 0, 0], dtype=np.uint8)
+    imarr = np.apply_along_axis(set_color, 2, imarr)
+    Image.fromarray(imarr, mode="RGB").save(fn)
 
 class SWMNetwork:
     def __init__(self, EE_module_neurons=100, EE_module_edges=1000, EE_module_num=8, i_neuron_num=200, p=0.1, dmax=1):
