@@ -1,6 +1,7 @@
 from iznetwork import IzNetwork
 import numpy as np
 from PIL import Image
+from matplotlib import pyplot as plt
 
 def create_EE_block(n_neurons=100, n_edges=1000, weight=1):
     full_edges = n_neurons*(n_neurons-1)
@@ -119,20 +120,21 @@ class SWMNetwork:
 
     def simulate(self, period=1000):
         ntot_neurons = self.ee_m_neurons * self.modules_num + self.i_neurons
-        fire_matrix = np.zeros((ntot_neurons, period), dtype=np.bool_)
+        fire_time = []
+        fire_num = []
+        ps_dtbn = np.random.poisson(lam=0.01, size=(ntot_neurons, period))
         for t in range(period):
-            ps_dtbn = np.random.poisson(lam=0.01, size=ntot_neurons)
-            I = np.array([v+15 if v>0 else 0 for v in ps_dtbn])
-            # I = np.apply_along_axis(lambda v: 15+v if v > 0 else 0, axis=0, arr=ps_dtbn)
+            I = 15 * ps_dtbn[:, t]
             self.net.setCurrent(I)
-            fired_id = np.zeros(ntot_neurons, dtype=np.bool_)
-            for n in self.net.update():
-                fired_id[n] = 1
-            fire_matrix[:, t] = fired_id.T
-
-        Image.fromarray(fire_matrix).save("static/raster.png")
-        
-        
+            for i in filter(lambda n: n < self.modules_num*self.ee_m_neurons, self.net.update()):
+                fire_time.append(t)
+                fire_num.append(i)
+            
+        plt.title("Scatter plot")
+        plt.xlabel("Time (ms)")
+        plt.ylabel("Neuron ID")
+        plt.scatter(fire_time, fire_num)
+        plt.savefig("static/raster.png")        
 
 if __name__ == "__main__":
     swm = SWMNetwork()
