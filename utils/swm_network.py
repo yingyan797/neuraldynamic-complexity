@@ -2,7 +2,6 @@ from iznetwork import IzNetwork
 import numpy as np
 from PIL import Image
 from matplotlib import pyplot as plt
-import networkx as nx
 
 def create_EE_block(n_neurons=100, n_edges=1000, weight=1):
     full_edges = n_neurons*(n_neurons-1)
