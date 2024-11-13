@@ -42,6 +42,7 @@ class SWMNetwork:
         self.ee_m_edges = EE_module_edges
         self.modules_num = EE_module_num
         self.i_neurons = i_neuron_num
+        self.p = p
 
         self.N = self.ee_m_neurons * self.modules_num + self.i_neurons
         self.net = IzNetwork(self.N, dmax)
@@ -150,13 +151,13 @@ class SWMNetwork:
         plt.xlabel("Time (ms)")
         plt.ylabel("Neuron ID")
         plt.scatter(fire_time, fire_num, s=1)
-        plt.savefig("static/raster.png")
+        plt.savefig(f"static/raster_p{self.p * 10}.png")
         
         plt.title("Mean Firing Rate")
         plt.xlabel("Time (ms)")
-        plt.ylabel("Neuron ID")
-        plt.scatter(fire_time, fire_num, s=1)
-        plt.savefig("static/raster.png")             
+        plt.ylabel("Mean Firing Rate")
+        plt.plot(fire_time, fire_num, s=1)
+        plt.savefig(f"static/mean_firing_rate_p{self.p * 10}.png")             
 
 if __name__ == "__main__":
     swm = SWMNetwork()
