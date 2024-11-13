@@ -77,7 +77,7 @@ class SWMNetwork:
             [zero_block for _ in range(0, i)] + [create_EE_block(self.ee_m_neurons, self.ee_m_edges) * F_EE] + [zero_block for _ in range(i+1, self.modules_num)] + [EI_blocks[i]] for i in range(self.modules_num)
         ] + [IE_blocks + [II_block]])
 
-        plot_weight_matrix(W)
+        # plot_weight_matrix(W)
 
         # generate D matrix
         D = dmax*np.ones((self.N, self.N), dtype=int)
@@ -85,7 +85,7 @@ class SWMNetwork:
         D[:ee_matrix, :ee_matrix] = 1 + np.random.random(size=(ee_matrix, ee_matrix)) * 19 # random delay between 1ms and 20ms
 
         self._rewire(W, p)
-        plot_weight_matrix(W, "static/weight_rewired.png")
+        # plot_weight_matrix(W, "static/weight_rewired.png")
 
         self.net.setParameters(a, b, c, d)
         self.net.setDelays(D)
@@ -121,25 +121,36 @@ class SWMNetwork:
                         n_avail -= 1
                         W[j, k] = 0
                         W[j, t] = current_weight
-
-    def simulate(self, period=1000):
+            
+    def simulate(self, period=1000, window_length=50):
         ntot_neurons = self.ee_m_neurons * self.modules_num + self.i_neurons
         fire_time = []
         fire_num = []
+        spike_counts = np.zeros((self.modules_num, int(period/window_length)))
         ps_dtbn = np.random.poisson(lam=0.01, size=(ntot_neurons, period))
         for t in range(period):
             I = 15 * ps_dtbn[:, t]
             self.net.setCurrent(I)
+            window = t // window_length
             for i in filter(lambda n: n < self.modules_num*self.ee_m_neurons, self.net.update()):
                 fire_time.append(t)
                 fire_num.append(i)
-            
-        plt.title("Scatter plot")
+                module = i // 100
+                spike_counts[module, window] += 1
+        spike_counts /= (window_length/1000)
+        plt.title("Raster plot")
         plt.figure(figsize=(10, 5))
         plt.xlabel("Time (ms)")
         plt.ylabel("Neuron ID")
         plt.scatter(fire_time, fire_num, s=1)
-        plt.savefig("static/raster.png")        
+        plt.savefig("static/raster.png")
+        plt.clf()
+        plt.title("Mean Firing Rate")
+        plt.xlabel("Frequency (Hz)")
+        plt.ylabel("Time segment count")
+        for n in range(self.modules_num):
+            plt.plot(range(spike_counts.shape[1]), spike_counts[n, :])
+        plt.savefig("static/raster.png")             
 
 if __name__ == "__main__":
     swm = SWMNetwork()
