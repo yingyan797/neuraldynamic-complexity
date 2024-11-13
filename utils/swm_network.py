@@ -28,7 +28,7 @@ class SWMNetwork:
         II_block = -1 * np.random.random(size=(self.i_neurons, self.i_neurons)) * F_II
         np.fill_diagonal(II_block, 0)
         IE_blocks = [-1 * np.random.random(size=(self.i_neurons, self.ee_m_neurons)) * F_IE for _ in range(self.modules_num)]
-        EI_blocks = [SWMNetwork.create_EI_block(i, self.ee_m_neurons, self.i_neurons) * F_EI for i in range(0, self.i_neurons, 25)]
+        EI_blocks = [SWMNetwork._create_EI_block(i, self.ee_m_neurons, self.i_neurons) * F_EI for i in range(0, self.i_neurons, 25)]
 
         """
         [   EE      zero    zero    zero    zero    zero    zero    E-I
@@ -40,25 +40,22 @@ class SWMNetwork:
         ]
         """
         ## generate W matrix
-        W = np.bmat([
-            [zero_block for _ in range(0, i)] + [SWMNetwork.create_EE_block(self.ee_m_neurons, self.ee_m_edges) * F_EE] + [zero_block for _ in range(i+1, self.modules_num)] + [EI_blocks[i]] for i in range(self.modules_num)
+        self.W = np.bmat([
+            [zero_block for _ in range(0, i)] + [SWMNetwork._create_EE_block(self.ee_m_neurons, self.ee_m_edges) * F_EE] + [zero_block for _ in range(i+1, self.modules_num)] + [EI_blocks[i]] for i in range(self.modules_num)
         ] + [IE_blocks + [II_block]])
-
-        SWMNetwork.plot_weight_matrix(W)
 
         # generate D matrix
         D = dmax*np.ones((self.N, self.N), dtype=int)
         ee_matrix = self.ee_m_neurons * self.modules_num
         D[:ee_matrix, :ee_matrix] = 1 + np.random.random(size=(ee_matrix, ee_matrix)) * 19 # random delay between 1ms and 20ms
 
-        self._rewire(W, p)
-        SWMNetwork.plot_weight_matrix(W, f"static/connectivity_{self.p}.png")
+        self._rewire(p)
 
         self.net.setParameters(a, b, c, d)
         self.net.setDelays(D)
-        self.net.setWeights(W)
+        self.net.setWeights(self.W)
 
-    def create_EE_block(n_neurons=100, n_edges=1000, weight=1):
+    def _create_EE_block(n_neurons=100, n_edges=1000, weight=1):
         full_edges = n_neurons*(n_neurons-1)
         block = [0 for _ in range(full_edges)]
         edges = np.random.choice(full_edges, n_edges, replace=False)
@@ -71,17 +68,17 @@ class SWMNetwork:
         # 100 by 100 matrix
         return np.array(block).reshape((n_neurons, n_neurons))
 
-    def create_EI_block(shift, n_rows=100, n_cols=200):
+    def _create_EI_block(shift, n_rows=100, n_cols=200):
         # return (100, 200) matrix
         block = np.zeros((n_rows, n_cols))
         for i, r in enumerate(range(0, 100, 4)):
             block[r: r+4, shift+i: shift+i+1] = np.random.random(size=(4, 1))
         return block
 
-    def plot_weight_matrix(weight, fn="static/weight.png"):
-        l, h = np.min(weight), np.max(weight)
-        imarr = np.zeros((weight.shape[0], weight.shape[1], 3))
-        imarr[:,:, 0] = weight
+    def plot_weight_matrix(self, fn="static/weight.png"):
+        l, h = np.min(self.W), np.max(self.W)
+        imarr = np.zeros((self.W.shape[0], self.W.shape[1], 3))
+        imarr[:,:, 0] = self.W
         def set_color(w):
             if w[0] == 0:
                 return np.array([0,0,0], dtype=np.uint8)
@@ -91,7 +88,7 @@ class SWMNetwork:
         imarr = np.apply_along_axis(set_color, 2, imarr)
         Image.fromarray(imarr, mode="RGB").save(fn)
    
-    def _rewire(self, W, p):
+    def _rewire(self, p):
         n_candidates = self.ee_m_neurons*(self.modules_num-1)
         for i in range(self.modules_num):
             # Work out bounds of the current block
@@ -101,7 +98,7 @@ class SWMNetwork:
                 n_avail = n_candidates
                 for k in range(block_start, block_end):
                     # Record current weight, only process if there is an edge
-                    current_weight = W[j, k]
+                    current_weight = self.W[j, k]
                     if current_weight != 0 and np.random.choice([True, False], p=[p, 1 - p]):
                         # New target must be from other block
                         new_target = int(n_avail * np.random.random())+1
@@ -110,7 +107,7 @@ class SWMNetwork:
                             if t == block_start:
                                 t += self.ee_m_neurons
                                 continue
-                            if W[j,t] == 0:
+                            if self.W[j,t] == 0:
                                 acc += 1
                             if acc == new_target:
                                 break
@@ -118,11 +115,11 @@ class SWMNetwork:
 
                         # Process the rewiring
                         n_avail -= 1
-                        W[j, k] = 0
-                        W[j, t] = current_weight
+                        self.W[j, k] = 0
+                        self.W[j, t] = current_weight
 
 
-    def mean_firing_rate(self, spike_counts, step_size=20):
+    def _mean_firing_rate(self, spike_counts, step_size=20):
         half_window = int(spike_counts.shape[1]/step_size/2)
         mean_firing_rates = []
         for i in range(0, spike_counts.shape[1] + step_size, step_size):
@@ -145,7 +142,7 @@ class SWMNetwork:
                 module = i // 100
                 spike_counts[module, t] += 1
         
-        fire_rate = self.mean_firing_rate(spike_counts, mean_step_size)            
+        fire_rate = self._mean_firing_rate(spike_counts, mean_step_size)            
         plt.title("Raster plot")
         plt.figure(figsize=(10, 5))
         plt.xlabel("Time (ms)")
@@ -153,15 +150,18 @@ class SWMNetwork:
         plt.scatter(fire_time, fire_num, s=1)
         plt.savefig(f"static/raster_{self.p}.png")
         plt.clf()
+        
         plt.title("Mean Firing Rate")
         plt.ylabel("Frequency (Hz)")
-        plt.xlabel("Time segment count")
+        plt.xlabel("Time (ms)")
         plt.xlim(0, period)
         for n in range(self.modules_num):
-            plt.plot(range(0, period + mean_step_size, mean_step_size), fire_rate[n, :])
+            plt.plot(range(0, period + mean_step_size, mean_step_size), fire_rate[n, :], label=f"Module {n}")
+        plt.legend()
         plt.savefig(f"static/fire_rate_{self.p}.png")             
 
 if __name__ == "__main__":
     for i in [0, 0.1, 0.2, 0.3, 0.4, 0.5]:
         swm = SWMNetwork(p=i)
+        swm.plot_weight_matrix(f"static/connectivity_{i}.png")
         swm.simulate(1000)
