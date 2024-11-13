@@ -150,7 +150,7 @@ class SWMNetwork:
         plt.xlabel("Time segment count")
         for n in range(self.modules_num):
             plt.plot(range(spike_counts.shape[1]), spike_counts[n, :])
-        plt.savefig("static/raster.png")             
+        plt.savefig("static/fire-rate.png")             
 
 if __name__ == "__main__":
     swm = SWMNetwork()
