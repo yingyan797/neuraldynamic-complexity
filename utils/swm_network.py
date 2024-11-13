@@ -3,39 +3,6 @@ import numpy as np
 from PIL import Image
 from matplotlib import pyplot as plt
 
-def create_EE_block(n_neurons=100, n_edges=1000, weight=1):
-    full_edges = n_neurons*(n_neurons-1)
-    block = [0 for _ in range(full_edges)]
-    edges = np.random.choice(full_edges, n_edges, replace=False)
-    for i in edges:
-        block[i] = weight
-    i = 0
-    while i < n_neurons*n_neurons:
-        block.insert(i, 0)
-        i += n_neurons+1
-    # 100 by 100 matrix
-    return np.array(block).reshape((n_neurons, n_neurons))
-
-def create_EI_block(shift, n_rows=100, n_cols=200):
-    # return (100, 200) matrix
-    block = np.zeros((n_rows, n_cols))
-    for i, r in enumerate(range(0, 100, 4)):
-        block[r: r+4, shift+i: shift+i+1] = np.random.random(size=(4, 1))
-    return block
-
-def plot_weight_matrix(weight, fn="static/weight.png"):
-    l, h = np.min(weight), np.max(weight)
-    imarr = np.zeros((weight.shape[0], weight.shape[1], 3))
-    imarr[:,:, 0] = weight
-    def set_color(w):
-        if w[0] == 0:
-            return np.array([0,0,0], dtype=np.uint8)
-        if w[0] < 0:
-            return np.array([0, 0, 55+200*w[0]/l], dtype=np.uint8)
-        return np.array([200+55*w[0]/h, 0, 0], dtype=np.uint8)
-    imarr = np.apply_along_axis(set_color, 2, imarr)
-    Image.fromarray(imarr, mode="RGB").save(fn)
-
 class SWMNetwork:
     def __init__(self, EE_module_neurons=100, EE_module_edges=1000, EE_module_num=8, i_neuron_num=200, p=0.1, dmax=20):
         self.ee_m_neurons = EE_module_neurons
@@ -61,7 +28,7 @@ class SWMNetwork:
         II_block = -1 * np.random.random(size=(self.i_neurons, self.i_neurons)) * F_II
         np.fill_diagonal(II_block, 0)
         IE_blocks = [-1 * np.random.random(size=(self.i_neurons, self.ee_m_neurons)) * F_IE for _ in range(self.modules_num)]
-        EI_blocks = [create_EI_block(i, self.ee_m_neurons, self.i_neurons) * F_EI for i in range(0, self.i_neurons, 25)]
+        EI_blocks = [SWMNetwork.create_EI_block(i, self.ee_m_neurons, self.i_neurons) * F_EI for i in range(0, self.i_neurons, 25)]
 
         """
         [   EE      zero    zero    zero    zero    zero    zero    E-I
@@ -74,10 +41,10 @@ class SWMNetwork:
         """
         ## generate W matrix
         W = np.bmat([
-            [zero_block for _ in range(0, i)] + [create_EE_block(self.ee_m_neurons, self.ee_m_edges) * F_EE] + [zero_block for _ in range(i+1, self.modules_num)] + [EI_blocks[i]] for i in range(self.modules_num)
+            [zero_block for _ in range(0, i)] + [SWMNetwork.create_EE_block(self.ee_m_neurons, self.ee_m_edges) * F_EE] + [zero_block for _ in range(i+1, self.modules_num)] + [EI_blocks[i]] for i in range(self.modules_num)
         ] + [IE_blocks + [II_block]])
 
-        # plot_weight_matrix(W)
+        SWMNetwork.plot_weight_matrix(W)
 
         # generate D matrix
         D = dmax*np.ones((self.N, self.N), dtype=int)
@@ -85,13 +52,45 @@ class SWMNetwork:
         D[:ee_matrix, :ee_matrix] = 1 + np.random.random(size=(ee_matrix, ee_matrix)) * 19 # random delay between 1ms and 20ms
 
         self._rewire(W, p)
-        # plot_weight_matrix(W, "static/weight_rewired.png")
+        SWMNetwork.plot_weight_matrix(W, "static/weight_rewired.png")
 
         self.net.setParameters(a, b, c, d)
         self.net.setDelays(D)
-        self.net.setWeights(W)    
+        self.net.setWeights(W)
+
+    def create_EE_block(n_neurons=100, n_edges=1000, weight=1):
+        full_edges = n_neurons*(n_neurons-1)
+        block = [0 for _ in range(full_edges)]
+        edges = np.random.choice(full_edges, n_edges, replace=False)
+        for i in edges:
+            block[i] = weight
+        i = 0
+        while i < n_neurons*n_neurons:
+            block.insert(i, 0)
+            i += n_neurons+1
+        # 100 by 100 matrix
+        return np.array(block).reshape((n_neurons, n_neurons))
+
+    def create_EI_block(shift, n_rows=100, n_cols=200):
+        # return (100, 200) matrix
+        block = np.zeros((n_rows, n_cols))
+        for i, r in enumerate(range(0, 100, 4)):
+            block[r: r+4, shift+i: shift+i+1] = np.random.random(size=(4, 1))
+        return block
+
+    def plot_weight_matrix(weight, fn="static/weight.png"):
+        l, h = np.min(weight), np.max(weight)
+        imarr = np.zeros((weight.shape[0], weight.shape[1], 3))
+        imarr[:,:, 0] = weight
+        def set_color(w):
+            if w[0] == 0:
+                return np.array([0,0,0], dtype=np.uint8)
+            if w[0] < 0:
+                return np.array([0, 0, 55+200*w[0]/l], dtype=np.uint8)
+            return np.array([200+55*w[0]/h, 0, 0], dtype=np.uint8)
+        imarr = np.apply_along_axis(set_color, 2, imarr)
+        Image.fromarray(imarr, mode="RGB").save(fn)
    
-    ## TODO rewireing
     def _rewire(self, W, p):
         n_candidates = self.ee_m_neurons*(self.modules_num-1)
         for i in range(self.modules_num):
