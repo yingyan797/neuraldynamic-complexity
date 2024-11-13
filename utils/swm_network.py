@@ -162,5 +162,6 @@ class SWMNetwork:
         plt.savefig(f"static/fire-rate-p{self.p * 10}.png")             
 
 if __name__ == "__main__":
-    swm = SWMNetwork()
-    swm.simulate(1000)
+    for i in [0, 0.1, 0.2, 0.3, 0.4, 0.5]:
+        swm = SWMNetwork(p=i)
+        swm.simulate(1000)
