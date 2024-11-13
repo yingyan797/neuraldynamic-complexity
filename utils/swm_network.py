@@ -2,6 +2,7 @@ from iznetwork import IzNetwork
 import numpy as np
 from PIL import Image
 from matplotlib import pyplot as plt
+import networkx as nx
 
 def create_EE_block(n_neurons=100, n_edges=1000, weight=1):
     full_edges = n_neurons*(n_neurons-1)
@@ -37,7 +38,7 @@ def plot_weight_matrix(weight, fn="static/weight.png"):
     Image.fromarray(imarr, mode="RGB").save(fn)
 
 class SWMNetwork:
-    def __init__(self, EE_module_neurons=100, EE_module_edges=1000, EE_module_num=8, i_neuron_num=200, p=0.1, dmax=1):
+    def __init__(self, EE_module_neurons=100, EE_module_edges=1000, EE_module_num=8, i_neuron_num=200, p=0.1, dmax=20):
         self.ee_m_neurons = EE_module_neurons
         self.ee_m_edges = EE_module_edges
         self.modules_num = EE_module_num
@@ -82,7 +83,7 @@ class SWMNetwork:
         D = dmax*np.ones((self.N, self.N), dtype=int)
         ee_matrix = self.ee_m_neurons * self.modules_num
         D[:ee_matrix, :ee_matrix] = 1 + np.random.random(size=(ee_matrix, ee_matrix)) * 19 # random delay between 1ms and 20ms
-        
+
         self._rewire(W, p)
         plot_weight_matrix(W, "static/weight_rewired.png")
 
@@ -134,9 +135,10 @@ class SWMNetwork:
                 fire_num.append(i)
             
         plt.title("Scatter plot")
+        plt.figure(figsize=(10, 5))
         plt.xlabel("Time (ms)")
         plt.ylabel("Neuron ID")
-        plt.scatter(fire_time, fire_num)
+        plt.scatter(fire_time, fire_num, s=1)
         plt.savefig("static/raster.png")        
 
 if __name__ == "__main__":
