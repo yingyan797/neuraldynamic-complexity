@@ -2,7 +2,6 @@ from iznetwork import IzNetwork
 import numpy as np
 from PIL import Image
 from matplotlib import pyplot as plt
-import networkx as nx
 
 def create_EE_block(n_neurons=100, n_edges=1000, weight=1):
     full_edges = n_neurons*(n_neurons-1)
@@ -43,6 +42,7 @@ class SWMNetwork:
         self.ee_m_edges = EE_module_edges
         self.modules_num = EE_module_num
         self.i_neurons = i_neuron_num
+        self.p = p
 
         self.N = self.ee_m_neurons * self.modules_num + self.i_neurons
         self.net = IzNetwork(self.N, dmax)
@@ -77,7 +77,7 @@ class SWMNetwork:
             [zero_block for _ in range(0, i)] + [create_EE_block(self.ee_m_neurons, self.ee_m_edges) * F_EE] + [zero_block for _ in range(i+1, self.modules_num)] + [EI_blocks[i]] for i in range(self.modules_num)
         ] + [IE_blocks + [II_block]])
 
-        # plot_weight_matrix(W)
+        plot_weight_matrix(W)
 
         # generate D matrix
         D = dmax*np.ones((self.N, self.N), dtype=int)
@@ -85,7 +85,7 @@ class SWMNetwork:
         D[:ee_matrix, :ee_matrix] = 1 + np.random.random(size=(ee_matrix, ee_matrix)) * 19 # random delay between 1ms and 20ms
 
         self._rewire(W, p)
-        # plot_weight_matrix(W, "static/weight_rewired.png")
+        plot_weight_matrix(W, "static/weight_rewired.png")
 
         self.net.setParameters(a, b, c, d)
         self.net.setDelays(D)
@@ -146,12 +146,12 @@ class SWMNetwork:
         plt.savefig("static/raster.png")
         plt.clf()
         plt.title("Mean Firing Rate")
-        plt.xlabel("Frequency (Hz)")
-        plt.ylabel("Time segment count")
+        plt.ylabel("Frequency (Hz)")
+        plt.xlabel("Time segment count")
         for n in range(self.modules_num):
             plt.plot(range(spike_counts.shape[1]), spike_counts[n, :])
         plt.savefig("static/raster.png")             
 
 if __name__ == "__main__":
     swm = SWMNetwork()
-    swm.simulate()
+    swm.simulate(1000)
