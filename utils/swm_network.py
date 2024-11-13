@@ -122,14 +122,14 @@ class SWMNetwork:
                         W[j, k] = 0
                         W[j, t] = current_weight
                         
-    def mean_firing_rate(self, spike_counts):
-        mean_firing_rates = np.zeros((8, 50))
-        for m in range(8):
-            for i in range(0, 1000, step=20):
+    def mean_firing_rate(self, spike_counts, step_size=20):
+        mean_firing_rates = np.zeros((self.modules_num, spike_counts.shape[1] // step_size))
+        for m in range(self.modules_num):
+            for i in range(0, self.modules_num * self.ee_m_neurons, step=step_size):
                 mean_firing_rates[m, i] = np.mean(spike_counts[m, i:i+50]) * 1000
             
 
-    def simulate(self, period=10000):
+    def simulate(self, period=1000):
         ntot_neurons = self.ee_m_neurons * self.modules_num + self.i_neurons
         fire_time = []
         fire_num = []
@@ -138,7 +138,7 @@ class SWMNetwork:
         for t in range(period):
             I = 15 * ps_dtbn[:, t]
             self.net.setCurrent(I)
-            for i in filter(lambda n: n < self.modules_num*self.ee_m_neurons, self.net.update()):
+            for i in filter(lambda n: n < self.modules_num * self.ee_m_neurons, self.net.update()):
                 fire_time.append(t)
                 fire_num.append(i)
                 module = i // 100 - 1
@@ -161,4 +161,4 @@ class SWMNetwork:
 
 if __name__ == "__main__":
     swm = SWMNetwork()
-    swm.simulate()
+    swm.simulate(1000)
