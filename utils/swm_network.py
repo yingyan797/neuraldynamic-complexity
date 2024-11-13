@@ -40,13 +40,12 @@ class SWMNetwork:
         EI_blocks = [SWMNetwork._create_EI_block(i, self.ee_m_neurons, self.i_neurons) * F_EI for i in range(0, self.i_neurons, 25)]
 
         """
-        [   EE      zero    zero    zero    zero    zero    zero    E-I
-            zero    EE      zero    zero    zero    zero    zero    E-I
-            ...
-            zero    zero    zero    zero    zero    zero    EE      E-I
-            I-E     I-E     I-E     I-E     I-E     I-E     I-E     I-I          
-        
-        ]
+        W = [   EE      zero    zero    zero    zero    zero    zero    E-I
+                zero    EE      zero    zero    zero    zero    zero    E-I
+                ...
+                zero    zero    zero    zero    zero    zero    EE      E-I
+                I-E     I-E     I-E     I-E     I-E     I-E     I-E     I-I          
+            ]
         """
         ## generate W matrix
         self.W = np.bmat([
