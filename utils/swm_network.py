@@ -120,11 +120,19 @@ class SWMNetwork:
                         n_avail -= 1
                         W[j, k] = 0
                         W[j, t] = current_weight
+                        
+    def mean_firing_rate(self, spike_counts):
+        mean_firing_rates = np.zeros((8, 50))
+        for m in range(8):
+            for i in range(0, 1000, step=20):
+                mean_firing_rates[m, i] = np.mean(spike_counts[m, i:i+50]) * 1000
+            
 
-    def simulate(self, period=1000):
+    def simulate(self, period=10000):
         ntot_neurons = self.ee_m_neurons * self.modules_num + self.i_neurons
         fire_time = []
         fire_num = []
+        spike_counts = np.zeros((self.modules_num, period))
         ps_dtbn = np.random.poisson(lam=0.01, size=(ntot_neurons, period))
         for t in range(period):
             I = 15 * ps_dtbn[:, t]
@@ -132,13 +140,23 @@ class SWMNetwork:
             for i in filter(lambda n: n < self.modules_num*self.ee_m_neurons, self.net.update()):
                 fire_time.append(t)
                 fire_num.append(i)
-            
+                module = i // 100 - 1
+                spike_counts[module, t] += 1
+        
+        self.mean_firing_rate(spike_counts)
+        
         plt.title("Scatter plot")
         plt.figure(figsize=(10, 5))
         plt.xlabel("Time (ms)")
         plt.ylabel("Neuron ID")
         plt.scatter(fire_time, fire_num, s=1)
-        plt.savefig("static/raster.png")        
+        plt.savefig("static/raster.png")
+        
+        plt.title("Mean Firing Rate")
+        plt.xlabel("Time (ms)")
+        plt.ylabel("Neuron ID")
+        plt.scatter(fire_time, fire_num, s=1)
+        plt.savefig("static/raster.png")             
 
 if __name__ == "__main__":
     swm = SWMNetwork()
