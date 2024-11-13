@@ -77,7 +77,7 @@ class SWMNetwork:
             [zero_block for _ in range(0, i)] + [create_EE_block(self.ee_m_neurons, self.ee_m_edges) * F_EE] + [zero_block for _ in range(i+1, self.modules_num)] + [EI_blocks[i]] for i in range(self.modules_num)
         ] + [IE_blocks + [II_block]])
 
-        plot_weight_matrix(W)
+        # plot_weight_matrix(W)
 
         # generate D matrix
         D = dmax*np.ones((self.N, self.N), dtype=int)
@@ -85,7 +85,7 @@ class SWMNetwork:
         D[:ee_matrix, :ee_matrix] = 1 + np.random.random(size=(ee_matrix, ee_matrix)) * 19 # random delay between 1ms and 20ms
 
         self._rewire(W, p)
-        plot_weight_matrix(W, "static/weight_rewired.png")
+        # plot_weight_matrix(W, "static/weight_rewired.png")
 
         self.net.setParameters(a, b, c, d)
         self.net.setDelays(D)
@@ -121,23 +121,32 @@ class SWMNetwork:
                         n_avail -= 1
                         W[j, k] = 0
                         W[j, t] = current_weight
+
+
+    def mean_firing_rate(self, spike_counts, step_size=20):
+        half_window = int(spike_counts.shape[1]/step_size/2)
+        mean_firing_rates = []
+        for i in range(0, spike_counts.shape[1], step_size):
+            mean_firing_rates.append(np.mean(spike_counts[:, max(0, i-half_window):min(spike_counts.shape[1],i+half_window)], axis=1) * 1000)
+        return np.array(mean_firing_rates).T
             
-    def simulate(self, period=1000, window_length=50):
+
+    def simulate(self, period=1000):
         ntot_neurons = self.ee_m_neurons * self.modules_num + self.i_neurons
         fire_time = []
         fire_num = []
-        spike_counts = np.zeros((self.modules_num, int(period/window_length)))
+        spike_counts = np.zeros((self.modules_num, period))
         ps_dtbn = np.random.poisson(lam=0.01, size=(ntot_neurons, period))
         for t in range(period):
             I = 15 * ps_dtbn[:, t]
             self.net.setCurrent(I)
-            window = t // window_length
-            for i in filter(lambda n: n < self.modules_num*self.ee_m_neurons, self.net.update()):
+            for i in filter(lambda n: n < self.modules_num * self.ee_m_neurons, self.net.update()):
                 fire_time.append(t)
                 fire_num.append(i)
                 module = i // 100
-                spike_counts[module, window] += 1
-        spike_counts /= (window_length/1000)
+                spike_counts[module, t] += 1
+        
+        fire_rate = self.mean_firing_rate(spike_counts)            
         plt.title("Raster plot")
         plt.figure(figsize=(10, 5))
         plt.xlabel("Time (ms)")
@@ -149,7 +158,7 @@ class SWMNetwork:
         plt.ylabel("Frequency (Hz)")
         plt.xlabel("Time segment count")
         for n in range(self.modules_num):
-            plt.plot(range(spike_counts.shape[1]), spike_counts[n, :])
+            plt.plot(range(0, period, 20), fire_rate[n, :])
         plt.savefig("static/fire-rate.png")             
 
 if __name__ == "__main__":
