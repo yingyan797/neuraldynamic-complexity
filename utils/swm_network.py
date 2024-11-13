@@ -151,7 +151,7 @@ class SWMNetwork:
         plt.xlabel("Time (ms)")
         plt.ylabel("Neuron ID")
         plt.scatter(fire_time, fire_num, s=1)
-        plt.savefig("static/raster.png")
+        plt.savefig(f"static/raster-{self.p * 10}.png")
         plt.clf()
         plt.title("Mean Firing Rate")
         plt.ylabel("Frequency (Hz)")
@@ -159,7 +159,7 @@ class SWMNetwork:
         plt.xlim(0, period)
         for n in range(self.modules_num):
             plt.plot(range(0, period + mean_step_size, mean_step_size), fire_rate[n, :])
-        plt.savefig("static/fire-rate.png")             
+        plt.savefig(f"static/fire-rate-p{self.p * 10}.png")             
 
 if __name__ == "__main__":
     swm = SWMNetwork()
