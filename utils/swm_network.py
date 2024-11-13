@@ -4,6 +4,15 @@ from PIL import Image
 from matplotlib import pyplot as plt
 
 class SWMNetwork:
+    '''
+    Initializes the network with the following parameters:
+        EE_module_neurons: Number of neurons per excitatory-excitatory module.
+        EE_module_edges: Number of edges within each EE module.
+        EE_module_num: Number of EE modules in the network.
+        i_neuron_num: Number of inhibitory neurons.
+        p: Probability of rewiring connections to introduce small-world properties.
+        dmax: Maximum delay for synaptic connections.
+    '''
     def __init__(self, EE_module_neurons=100, EE_module_edges=1000, EE_module_num=8, i_neuron_num=200, p=0.1, dmax=20):
         self.ee_m_neurons = EE_module_neurons
         self.ee_m_edges = EE_module_edges
@@ -76,6 +85,9 @@ class SWMNetwork:
         return block
 
     def plot_weight_matrix(self, fn="static/weight.png"):
+        '''
+        Visualizes the weight matrix of synaptic connections, saving the plot to a specified file.
+        '''
         l, h = np.min(self.W), np.max(self.W)
         imarr = np.zeros((self.W.shape[0], self.W.shape[1], 3))
         imarr[:,:, 0] = self.W
@@ -125,9 +137,11 @@ class SWMNetwork:
         for i in range(0, spike_counts.shape[1] + step_size, step_size):
             mean_firing_rates.append(np.mean(spike_counts[:, max(0, i-half_window):min(spike_counts.shape[1],i+half_window)], axis=1) * 1000)
         return np.array(mean_firing_rates).T
-            
 
-    def simulate(self, period=1000, mean_step_size=20):
+    def simulate(self, period=1000, step_size=20):
+        '''
+        Runs the network simulation for a given time period, generating raster and mean firing rate plots
+        '''
         ntot_neurons = self.ee_m_neurons * self.modules_num + self.i_neurons
         fire_time = []
         fire_num = []
@@ -142,7 +156,7 @@ class SWMNetwork:
                 module = i // 100
                 spike_counts[module, t] += 1
         
-        fire_rate = self._mean_firing_rate(spike_counts, mean_step_size)            
+        fire_rate = self._mean_firing_rate(spike_counts, step_size)            
         plt.title("Raster plot")
         plt.figure(figsize=(10, 5))
         plt.xlabel("Time (ms)")
@@ -156,7 +170,7 @@ class SWMNetwork:
         plt.xlabel("Time (ms)")
         plt.xlim(0, period)
         for n in range(self.modules_num):
-            plt.plot(range(0, period + mean_step_size, mean_step_size), fire_rate[n, :], label=f"Module {n}")
+            plt.plot(range(0, period + step_size, step_size), fire_rate[n, :], label=f"Module {n}")
         plt.legend()
         plt.savefig(f"static/fire_rate_{self.p}.png")             
 
